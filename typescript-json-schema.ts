@@ -1,11 +1,13 @@
 import * as glob from "glob";
-import { stringify } from "safe-stable-stringify";
+import {stringify} from "safe-stable-stringify";
 import * as path from "path";
-import { createHash } from "crypto";
+import {createHash} from "crypto";
 import * as ts from "typescript";
-import { JSONSchema7, JSONSchema7TypeName } from "json-schema";
-import { pathEqual } from "path-equal";
-export { Program, CompilerOptions, Symbol } from "typescript";
+import {TypeFlags} from "typescript";
+import {JSONSchema7, JSONSchema7TypeName} from "json-schema";
+import {pathEqual} from "path-equal";
+
+export {Program, CompilerOptions, Symbol} from "typescript";
 
 const vm = require("vm");
 
@@ -116,6 +118,7 @@ type RedefinedFields =
     | "not"
     | "definitions";
 export type DefinitionOrBoolean = Definition | boolean;
+
 export interface Definition extends Omit<JSONSchema7, RedefinedFields> {
     // Non-standard fields
     propertyOrder?: string[];
@@ -326,7 +329,7 @@ function makeNullable(def: Definition): Definition {
     if (!addSimpleType(def, "null")) {
         const union = def.oneOf || def.anyOf;
         if (union) {
-            union.push({ type: "null" });
+            union.push({type: "null"});
         } else {
             const subdef = {};
             for (var k in def) {
@@ -335,7 +338,7 @@ function makeNullable(def: Definition): Definition {
                     delete def[k];
                 }
             }
-            def.anyOf = [subdef, { type: "null" }];
+            def.anyOf = [subdef, {type: "null"}];
         }
     }
     return def;
@@ -518,7 +521,7 @@ export class JsonSchemaGenerator {
         this.userSymbols = userSymbols;
         this.inheritingTypes = inheritingTypes;
         this.tc = tc;
-        this.userValidationKeywords = args.validationKeywords.reduce((acc, word) => ({ ...acc, [word]: true }), {});
+        this.userValidationKeywords = args.validationKeywords.reduce((acc, word) => ({...acc, [word]: true}), {});
         this.constAsEnum = args.constAsEnum;
     }
 
@@ -611,7 +614,7 @@ export class JsonSchemaGenerator {
                 if (match) {
                     const k = match[1];
                     const v = match[2];
-                    definition[name] = { ...definition[name], [k]: v ? parseValue(symbol, k, v) : true };
+                    definition[name] = {...definition[name], [k]: v ? parseValue(symbol, k, v) : true};
                     return;
                 }
             }
@@ -686,6 +689,13 @@ export class JsonSchemaGenerator {
                 definition.type = "null";
             } else if (flags & ts.TypeFlags.Undefined || propertyTypeString === "void") {
                 if (!ignoreUndefined) {
+                    console.log({
+                        propertyType: propertyType,
+                        reffedType: reffedType,
+                        definition: definition,
+                        defaultNumberType: defaultNumberType,
+                        ignoreUndefined: ignoreUndefined,
+                    });
                     throw new Error("Not supported: root type undefined");
                 }
                 // will be deleted
@@ -781,6 +791,43 @@ export class JsonSchemaGenerator {
                             definition.items = this.getTypeDefinition(arrayType);
                         }
                     }
+                } else if (propertyType.flags === TypeFlags.IndexedAccess) {
+                    const indexedType = propertyType as ts.IndexedAccessType;
+                    let objectType = indexedType.objectType;
+                    const indexType = indexedType.indexType;
+                    let resultingType: ts.Type | undefined;
+                    if (objectType.flags & ts.TypeFlags.TypeParameter) {
+                        const typeParameter = objectType as ts.TypeParameter;
+                        if (typeParameter.getConstraint()) {
+                            objectType = this.tc.getApparentType(typeParameter.getConstraint()!);
+                        }
+                        if (indexType.flags & ts.TypeFlags.StringLiteral) {
+                            resultingType = this.tc.getIndexTypeOfType(objectType, ts.IndexKind.String);
+                        } else if (indexType.flags & ts.TypeFlags.NumberLiteral) {
+                            resultingType = this.tc.getIndexTypeOfType(objectType, ts.IndexKind.Number);
+                        }
+                    }
+                    let indexedSymbolType
+                    if (!resultingType && objectType) {
+                        if (indexType.flags & ts.TypeFlags.StringLiteral) {
+                            const stringLiteralType = indexType as ts.StringLiteralType;
+                            const propertyName = stringLiteralType.value; // This should give you "CallOptions"
+                            const indexedSymbol = objectType.getProperty(propertyName);
+                            if (indexedSymbol) {
+                                indexedSymbolType = this.tc.getTypeOfSymbolAtLocation(indexedSymbol, indexedSymbol.valueDeclaration!);
+                            }
+                        }
+                    }
+                    if (indexedSymbolType) {
+                        if (!indexedSymbolType.symbol) {
+                            console.log("no symbol for ", propertyTypeString);
+                        }
+                        this.getClassDefinition(indexedSymbolType, definition);
+                    } else {
+                        const error = new TypeError("Unsupported type: " + propertyTypeString);
+                        (error as any).type = propertyType;
+                        throw error;
+                    }
                 } else {
                     // Report that type could not be processed
                     const error = new TypeError("Unsupported type: " + propertyTypeString);
@@ -844,7 +891,7 @@ export class JsonSchemaGenerator {
                 definition.default = initial.getText();
             } else {
                 try {
-                    const sandbox = { sandboxvar: null as any };
+                    const sandbox = {sandboxvar: null as any};
                     vm.runInNewContext("sandboxvar=" + initial.getText(), sandbox);
 
                     const val = sandbox.sandboxvar;
@@ -990,7 +1037,7 @@ export class JsonSchemaGenerator {
             if (isOnlyBooleans) {
                 pushSimpleType("boolean");
             } else {
-                const enumSchema: Definition = enumValues.length > 1 ? { enum: enumValues.sort() } : { const: enumValues[0] };
+                const enumSchema: Definition = enumValues.length > 1 ? {enum: enumValues.sort()} : {const: enumValues[0]};
 
                 // If all values are of the same primitive type, add a "type" field to the schema
                 if (
@@ -1018,7 +1065,7 @@ export class JsonSchemaGenerator {
         }
 
         if (simpleTypes.length > 0) {
-            schemas.push({ type: simpleTypes.length === 1 ? simpleTypes[0] : simpleTypes });
+            schemas.push({type: simpleTypes.length === 1 ? simpleTypes[0] : simpleTypes});
         }
 
         if (schemas.length === 1) {
@@ -1062,7 +1109,7 @@ export class JsonSchemaGenerator {
         }
 
         if (simpleTypes.length > 0) {
-            schemas.push({ type: simpleTypes.length === 1 ? simpleTypes[0] : simpleTypes });
+            schemas.push({type: simpleTypes.length === 1 ? simpleTypes[0] : simpleTypes});
         }
 
         if (schemas.length === 1) {
@@ -1277,17 +1324,16 @@ export class JsonSchemaGenerator {
         reffedType?: ts.Symbol,
         pairedSymbol?: ts.Symbol,
         forceNotRef: boolean = false,
-        ignoreUndefined = false,
+        ignoreUndefined = true,
     ): Definition {
         const definition: Definition = {}; // real definition
-
         // Ignore any number of Readonly and Mutable type wrappings, since they only add and remove readonly modifiers on fields and JSON Schema is not concerned with mutability
         while (
             typ.aliasSymbol &&
             (typ.aliasSymbol.escapedName === "Readonly" || typ.aliasSymbol.escapedName === "Mutable") &&
             typ.aliasTypeArguments &&
             typ.aliasTypeArguments[0]
-        ) {
+            ) {
             typ = typ.aliasTypeArguments[0];
             reffedType = undefined;
         }
@@ -1563,7 +1609,7 @@ export class JsonSchemaGenerator {
             );
         }
         if (this.args.ref && includeReffedDefinitions && Object.keys(this.reffedDefinitions).length > 0) {
-            root.definitions = { ...root.definitions, ...this.reffedDefinitions };
+            root.definitions = {...root.definitions, ...this.reffedDefinitions};
         }
         return root;
     }
@@ -1587,6 +1633,7 @@ export class JsonSchemaGenerator {
             }
             return onlyIncludeFiles.filter((f) => pathEqual(f, file.fileName)).length > 0;
         }
+
         const files = program.getSourceFiles().filter(includeFile);
         if (files.length) {
             return Object.keys(this.userSymbols).filter((key) => {
@@ -1643,6 +1690,7 @@ export function buildGenerator(
         }
         return onlyIncludeFiles.indexOf(file.fileName) >= 0;
     }
+
     // Use defaults unless otherwise specified
     const settings = getDefaultArgs();
 
@@ -1687,7 +1735,7 @@ export function buildGenerator(
                     const typeName = fullyQualifiedName.replace(/".*"\./, "");
                     const name = !args.uniqueNames ? typeName : `${typeName}.${generateHashOfNode(node, relativePath)}`;
 
-                    symbols.push({ name, typeName, fullyQualifiedName, symbol });
+                    symbols.push({name, typeName, fullyQualifiedName, symbol});
                     if (!userSymbols[name]) {
                         allSymbols[name] = nodeType;
                     }
@@ -1709,6 +1757,7 @@ export function buildGenerator(
                     ts.forEachChild(node, (n) => inspect(n, tc));
                 }
             }
+
             inspect(sourceFile, typeChecker);
         });
 
@@ -1717,7 +1766,7 @@ export function buildGenerator(
         diagnostics.forEach((diagnostic) => {
             const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
             if (diagnostic.file) {
-                const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+                const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
                 console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
             } else {
                 console.error(message);
@@ -1821,7 +1870,7 @@ export async function exec(filePattern: string, fullTypeName: string, args = get
     if (args.out) {
         return new Promise((resolve, reject) => {
             const fs = require("fs");
-            fs.mkdir(path.dirname(args.out), { recursive: true }, function (mkErr: Error) {
+            fs.mkdir(path.dirname(args.out), {recursive: true}, function (mkErr: Error) {
                 if (mkErr) {
                     return reject(new Error("Unable to create parent directory for output file: " + mkErr.message));
                 }

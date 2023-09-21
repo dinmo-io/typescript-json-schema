@@ -607,6 +607,15 @@ export interface MyObject {
 ```
 
 
+## [const-as-enum](./test/programs/const-as-enum)
+
+```ts
+export interface MyObject {
+    reference: true;
+}
+```
+
+
 ## [const-keyword](./test/programs/const-keyword)
 
 ```ts
@@ -1441,6 +1450,23 @@ class MyObject {
 class MyObject {
     foo: "ok" | "fail" | "abort" | "";
     bar: "ok" | "fail" | "abort" | string;
+}
+```
+
+
+## [string-template-literal](./test/programs/string-template-literal)
+
+```ts
+interface MyObject {
+  a: `@${string}`,
+  b: `@${number}`,
+  c: `@${bigint}`,
+  d: `@${boolean}`,
+  e: `@${undefined}`,
+  f: `@${null}`,
+  g: `${string}@`,
+  h: `${number}@`,
+  i: `${string}@${number}`,
 }
 ```
 
