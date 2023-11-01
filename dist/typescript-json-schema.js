@@ -340,7 +340,7 @@ var JsonSchemaGenerator = (function () {
         configurable: true
     });
     JsonSchemaGenerator.prototype.isFromDefaultLib = function (symbol) {
-        var declarations = symbol.getDeclarations();
+        var declarations = symbol === null || symbol === void 0 ? void 0 : symbol.getDeclarations();
         if (declarations && declarations.length > 0 && declarations[0].parent) {
             return declarations[0].parent.getSourceFile().hasNoDefaultLib;
         }
@@ -616,7 +616,7 @@ var JsonSchemaGenerator = (function () {
         return definition;
     };
     JsonSchemaGenerator.prototype.getReferencedTypeSymbol = function (prop) {
-        var decl = prop.getDeclarations();
+        var decl = prop === null || prop === void 0 ? void 0 : prop.getDeclarations();
         if (decl === null || decl === void 0 ? void 0 : decl.length) {
             var type = decl[0].type;
             if (type && type.kind & ts.SyntaxKind.TypeReference && type.typeName) {

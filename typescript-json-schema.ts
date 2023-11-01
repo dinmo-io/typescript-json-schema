@@ -530,7 +530,7 @@ export class JsonSchemaGenerator {
     }
 
     private isFromDefaultLib(symbol: ts.Symbol) {
-        const declarations = symbol.getDeclarations();
+        const declarations = symbol?.getDeclarations();
         if (declarations && declarations.length > 0 && declarations[0].parent) {
             return declarations[0].parent.getSourceFile().hasNoDefaultLib;
         }
@@ -842,7 +842,7 @@ export class JsonSchemaGenerator {
     }
 
     private getReferencedTypeSymbol(prop: ts.Symbol): ts.Symbol | undefined {
-        const decl = prop.getDeclarations();
+        const decl = prop?.getDeclarations();
         if (decl?.length) {
             const type = <ts.TypeReferenceNode>(<any>decl[0]).type;
             if (type && type.kind & ts.SyntaxKind.TypeReference && type.typeName) {
