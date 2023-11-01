@@ -916,7 +916,17 @@ export class JsonSchemaGenerator {
     }
 
     private getEnumDefinition(clazzType: ts.Type, definition: Definition): Definition {
-        const node = clazzType.getSymbol()!.getDeclarations()![0];
+        // if (!clazzType || !clazzType.getSymbol()) {
+        //     console.log(clazzType, clazzType.getSymbol(), 'fail to getDeclarations')            
+        // }
+
+        const node = clazzType.getSymbol()?.getDeclarations()![0];
+
+        // Example: typeof globalThis may not have any declaration
+        if (!node) {
+            definition.type = "object";
+            return definition;
+        }
         const fullName = this.tc.typeToString(clazzType, undefined, ts.TypeFormatFlags.UseFullyQualifiedType);
         const members: ts.NodeArray<ts.EnumMember> =
             node.kind === ts.SyntaxKind.EnumDeclaration
@@ -1125,7 +1135,10 @@ export class JsonSchemaGenerator {
     }
 
     private getClassDefinition(clazzType: ts.Type, definition: Definition): Definition {
-        const node = clazzType.getSymbol()!.getDeclarations()![0];
+        // if (!clazzType || !clazzType.getSymbol()) {
+        //     console.log(clazzType, clazzType.getSymbol(), 'fail to getDeclarations')            
+        // }
+        const node = clazzType.getSymbol()?.getDeclarations()![0];
 
         // Example: typeof globalThis may not have any declaration
         if (!node) {

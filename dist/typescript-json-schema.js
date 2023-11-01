@@ -680,7 +680,12 @@ var JsonSchemaGenerator = (function () {
     };
     JsonSchemaGenerator.prototype.getEnumDefinition = function (clazzType, definition) {
         var _this = this;
-        var node = clazzType.getSymbol().getDeclarations()[0];
+        var _a;
+        var node = (_a = clazzType.getSymbol()) === null || _a === void 0 ? void 0 : _a.getDeclarations()[0];
+        if (!node) {
+            definition.type = "object";
+            return definition;
+        }
         var fullName = this.tc.typeToString(clazzType, undefined, ts.TypeFormatFlags.UseFullyQualifiedType);
         var members = node.kind === ts.SyntaxKind.EnumDeclaration
             ? node.members
@@ -868,8 +873,8 @@ var JsonSchemaGenerator = (function () {
     };
     JsonSchemaGenerator.prototype.getClassDefinition = function (clazzType, definition) {
         var _this = this;
-        var _a, _b;
-        var node = clazzType.getSymbol().getDeclarations()[0];
+        var _a, _b, _c;
+        var node = (_a = clazzType.getSymbol()) === null || _a === void 0 ? void 0 : _a.getDeclarations()[0];
         if (!node) {
             definition.type = "object";
             return definition;
@@ -919,7 +924,7 @@ var JsonSchemaGenerator = (function () {
                     var typ = this.tc.getTypeAtLocation(indexSignature.type);
                     var def = void 0;
                     if (typ.flags & ts.TypeFlags.IndexedAccess) {
-                        var targetName = ts.escapeLeadingUnderscores((_b = (_a = clazzType.mapper) === null || _a === void 0 ? void 0 : _a.target) === null || _b === void 0 ? void 0 : _b.value);
+                        var targetName = ts.escapeLeadingUnderscores((_c = (_b = clazzType.mapper) === null || _b === void 0 ? void 0 : _b.target) === null || _c === void 0 ? void 0 : _c.value);
                         var indexedAccessType = typ;
                         var symbols = indexedAccessType.objectType.members;
                         var targetSymbol = symbols === null || symbols === void 0 ? void 0 : symbols.get(targetName);
