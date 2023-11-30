@@ -807,7 +807,7 @@ export class JsonSchemaGenerator {
                             resultingType = this.tc.getIndexTypeOfType(objectType, ts.IndexKind.Number);
                         }
                     }
-                    let indexedSymbolType
+                    let indexedSymbolType;
                     if (!resultingType && objectType) {
                         if (indexType.flags & ts.TypeFlags.StringLiteral) {
                             const stringLiteralType = indexType as ts.StringLiteralType;
@@ -824,13 +824,17 @@ export class JsonSchemaGenerator {
                         }
                         this.getClassDefinition(indexedSymbolType, definition);
                     } else {
-                        const error = new TypeError("Unsupported type: " + propertyTypeString);
+                        const error = new TypeError("" +
+                            "Unsupported type (non indexed symbol type): " + propertyTypeString);
                         (error as any).type = propertyType;
                         throw error;
                     }
+                } else if(propertyType.flags === TypeFlags.Conditional) {
+                    const conditionalType = propertyType as ts.ConditionalType;
+                    this.getClassDefinition(conditionalType, definition);
                 } else {
                     // Report that type could not be processed
-                    const error = new TypeError("Unsupported type: " + propertyTypeString);
+                    const error = new TypeError(`Unsupported type (unsupported type flag): ${propertyTypeString}, flag : ${propertyType.flags}`);
                     (error as any).type = propertyType;
                     throw error;
                     // definition = this.getTypeDefinition(propertyType, tc);

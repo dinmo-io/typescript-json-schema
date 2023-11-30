@@ -601,13 +601,18 @@ var JsonSchemaGenerator = (function () {
                         this.getClassDefinition(indexedSymbolType, definition);
                     }
                     else {
-                        var error = new TypeError("Unsupported type: " + propertyTypeString);
+                        var error = new TypeError("" +
+                            "Unsupported type (non indexed symbol type): " + propertyTypeString);
                         error.type = propertyType;
                         throw error;
                     }
                 }
+                else if (propertyType.flags === typescript_1.TypeFlags.Conditional) {
+                    var conditionalType = propertyType;
+                    this.getClassDefinition(conditionalType, definition);
+                }
                 else {
-                    var error = new TypeError("Unsupported type: " + propertyTypeString);
+                    var error = new TypeError("Unsupported type (unsupported type flag): ".concat(propertyTypeString, ", flag : ").concat(propertyType.flags));
                     error.type = propertyType;
                     throw error;
                 }
